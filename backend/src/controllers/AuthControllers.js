@@ -2,6 +2,9 @@ import Users from "../models/UsersSchema.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import { uploadImg } from "../config/cloudinary.js";
+import mongoose from "mongoose";
+import crypto from "crypto";
+import { sendPasswordResetEmail } from "../config/mailer.js";
 
 const addUser = async (req, res) => {
   const { name, email, password } = req.body;
@@ -323,6 +326,212 @@ const UserProfile =async (req,res)=>{
     
 }
 
+const dashboardOverview = async (req, res) => {
+  try {
+    const users = await Users.find()
+      .select("-password")
+      .sort({ createdAt: -1 });
+    const adminsCount = users.filter((user) => user.role === "admin").length;
+
+    res.json({
+      status: true,
+      message: "dashboard data fetched successfully",
+      data: {
+        stats: {
+          users: users.length,
+          admins: adminsCount,
+          database: mongoose.connection.readyState === 1 ? "Active" : "Inactive",
+        },
+        users,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: false,
+      message: error.message,
+    });
+  }
+};
+
+const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        status: false,
+        message: "email is required",
+      });
+    }
+
+    const user = await Users.findOne({ email: email.toLowerCase().trim() });
+
+    if (!user) {
+      return res.status(404).json({
+        status: false,
+        message: "no account found with this email",
+      });
+    }
+
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    const hashedToken = crypto
+      .createHash("sha256")
+      .update(resetToken)
+      .digest("hex");
+
+    user.resetPasswordToken = hashedToken;
+    user.resetPasswordExpires = Date.now() + 15 * 60 * 1000;
+    await user.save();
+
+    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+    const resetUrl = `${frontendUrl}/reset-password/${resetToken}`;
+
+    await sendPasswordResetEmail({
+      to: user.email,
+      name: user.name,
+      resetUrl,
+    });
+
+    res.json({
+      status: true,
+      message: "password reset link sent to your email",
+    });
+  } catch (error) {
+    console.log("error in forgot password-->", error.message);
+
+    res.status(500).json({
+      status: false,
+      message: error.message,
+    });
+  }
+};
+
+const resetPassword = async (req, res) => {
+  try {
+    const { token } = req.params;
+    const { password } = req.body;
+
+    if (!password) {
+      return res.status(400).json({
+        status: false,
+        message: "password is required",
+      });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({
+        status: false,
+        message: "password must be at least 6 characters",
+      });
+    }
+
+    const hashedToken = crypto
+      .createHash("sha256")
+      .update(token)
+      .digest("hex");
+
+    const user = await Users.findOne({
+      resetPasswordToken: hashedToken,
+      resetPasswordExpires: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      return res.status(400).json({
+        status: false,
+        message: "reset link is invalid or expired",
+      });
+    }
+
+    user.password = await bcrypt.hash(password, 10);
+    user.resetPasswordToken = "";
+    user.resetPasswordExpires = null;
+    await user.save();
+
+    res.json({
+      status: true,
+      message: "password reset successfully",
+    });
+  } catch (error) {
+    console.log("error in reset password-->", error.message);
+
+    res.status(500).json({
+      status: false,
+      message: error.message,
+    });
+  }
+};
+
+const updateUserRole = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { role } = req.body;
+
+    if (!["admin", "user"].includes(role)) {
+      return res.status(400).json({
+        status: false,
+        message: "role must be admin or user",
+      });
+    }
+
+    const user = await Users.findByIdAndUpdate(
+      id,
+      { role },
+      { new: true }
+    ).select("-password");
+
+    if (!user) {
+      return res.status(404).json({
+        status: false,
+        message: "user not found",
+      });
+    }
+
+    res.json({
+      status: true,
+      message: "user role updated successfully",
+      data: user,
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: false,
+      message: error.message,
+    });
+  }
+};
+
+const adminDeleteUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (req.user?._id?.toString() === id) {
+      return res.status(400).json({
+        status: false,
+        message: "you cannot delete your own admin account",
+      });
+    }
+
+    const user = await Users.findByIdAndDelete(id).select("-password");
+
+    if (!user) {
+      return res.status(404).json({
+        status: false,
+        message: "user not found",
+      });
+    }
+
+    res.json({
+      status: true,
+      message: "user deleted successfully",
+      data: user,
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: false,
+      message: error.message,
+    });
+  }
+};
+
 export {
   addUser,
   allUsers,
@@ -331,5 +540,10 @@ export {
   deleteUser,
   loginUser,
   logout,
-  UserProfile
+  forgotPassword,
+  resetPassword,
+  UserProfile,
+  dashboardOverview,
+  updateUserRole,
+  adminDeleteUser
 };

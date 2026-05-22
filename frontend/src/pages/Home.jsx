@@ -2,12 +2,23 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import ConfirmModal from '../components/ConfirmModal'
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1/auth'
+
 const Home = () => {
   const navigate = useNavigate()
   const user = JSON.parse(localStorage.getItem('user') || 'null')
   const [showLogoutModal, setShowLogoutModal] = useState(false)
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await fetch(`${API_URL}/logout`, {
+        method: 'POST',
+        credentials: 'include',
+      })
+    } catch (error) {
+      console.error('Logout request failed:', error)
+    }
+
     localStorage.removeItem('token')
     localStorage.removeItem('user')
     setShowLogoutModal(false)

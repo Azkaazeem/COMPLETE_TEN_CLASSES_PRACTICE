@@ -50,4 +50,15 @@ const optionalAuth = async (req, res, next) => {
   next();
 };
 
-export { requireAuth, optionalAuth };
+const requireAdmin = (req, res, next) => {
+  if (req.user?.role !== "admin") {
+    return res.status(403).json({
+      status: false,
+      message: "admin access required",
+    });
+  }
+
+  next();
+};
+
+export { requireAuth, optionalAuth, requireAdmin };

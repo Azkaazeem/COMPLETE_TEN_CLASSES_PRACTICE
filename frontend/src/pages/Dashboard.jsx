@@ -1,72 +1,30 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import ConfirmModal from '../components/ConfirmModal'
 
-const initialUsers = [
-  {
-    id: 1,
-    name: 'Areeba Khan',
-    email: 'areeba@example.com',
-    role: 'admin',
-    status: 'Active',
-    joined: 'May 12, 2026',
-    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=120&q=80',
-  },
-  {
-    id: 2,
-    name: 'Hamza Ali',
-    email: 'hamza@example.com',
-    role: 'user',
-    status: 'Active',
-    joined: 'May 10, 2026',
-    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=120&q=80',
-  },
-  {
-    id: 3,
-    name: 'Sana Mir',
-    email: 'sana@example.com',
-    role: 'user',
-    status: 'Active',
-    joined: 'May 8, 2026',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80',
-  },
-  {
-    id: 4,
-    name: 'Bilal Ahmed',
-    email: 'bilal@example.com',
-    role: 'admin',
-    status: 'Active',
-    joined: 'May 6, 2026',
-    avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=120&q=80',
-  },
-  {
-    id: 5,
-    name: 'Maham Noor',
-    email: 'maham@example.com',
-    role: 'user',
-    status: 'Pending',
-    joined: 'May 4, 2026',
-    avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=120&q=80',
-  },
-  {
-    id: 6,
-    name: 'Zain Raza',
-    email: 'zain@example.com',
-    role: 'user',
-    status: 'Active',
-    joined: 'May 2, 2026',
-    avatar: 'https://images.unsplash.com/photo-1519345182560-3f2917c472ef?auto=format&fit=crop&w=120&q=80',
-  },
-  {
-    id: 7,
-    name: 'Hira Shah',
-    email: 'hira@example.com',
-    role: 'user',
-    status: 'Active',
-    joined: 'Apr 29, 2026',
-    avatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=120&q=80',
-  },
-]
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1/auth'
+const FALLBACK_AVATAR =
+  'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=120&q=80'
+
+const formatDate = (date) => {
+  if (!date) return 'Not available'
+
+  return new Intl.DateTimeFormat('en', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(new Date(date))
+}
+
+const mapUser = (user) => ({
+  id: user._id,
+  name: user.name,
+  email: user.email,
+  role: user.role,
+  status: 'Active',
+  joined: formatDate(user.createdAt),
+  avatar: user.profilePic || FALLBACK_AVATAR,
+})
 
 const navItems = [
   { id: 'dashboard', label: 'Dashboard', icon: 'grid' },
@@ -161,7 +119,7 @@ const UserTable = ({ users, onDelete, onToggleRole, compact }) => (
                 <div className="flex justify-end gap-2">
                   <button
                     type="button"
-                    onClick={() => onToggleRole(user.id)}
+                    onClick={() => onToggleRole(user)}
                     className="rounded-md bg-white/10 px-3 py-2 text-xs font-bold text-white transition hover:bg-white/15"
                   >
                     {user.role === 'admin' ? 'Make User' : 'Make Admin'}
@@ -199,17 +157,58 @@ const Dashboard = () => {
   const navigate = useNavigate()
   const storedUser = JSON.parse(localStorage.getItem('user') || 'null')
   const [activeTab, setActiveTab] = useState('dashboard')
-  const [users, setUsers] = useState(initialUsers)
+  const [users, setUsers] = useState([])
+  const [stats, setStats] = useState({ users: 0, admins: 0, database: 'Inactive' })
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState('')
   const [search, setSearch] = useState('')
   const [modal, setModal] = useState(null)
 
   const admin = {
     name: storedUser?.name || 'Admin User',
     role: storedUser?.role || 'admin',
-    avatar:
-      storedUser?.profilePic ||
-      'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=120&q=80',
+    avatar: storedUser?.profilePic || FALLBACK_AVATAR,
   }
+
+  const authFetch = async (path, options = {}) => {
+    const token = localStorage.getItem('token')
+
+    const response = await fetch(`${API_URL}${path}`, {
+      ...options,
+      credentials: 'include',
+      headers: {
+        ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+        Authorization: `Bearer ${token}`,
+        ...options.headers,
+      },
+    })
+    const result = await response.json()
+
+    if (!response.ok || !result.status) {
+      throw new Error(result.message || 'Request failed')
+    }
+
+    return result
+  }
+
+  const loadDashboard = async () => {
+    try {
+      setIsLoading(true)
+      setError('')
+      const result = await authFetch('/dashboard')
+
+      setUsers(result.data.users.map(mapUser))
+      setStats(result.data.stats)
+    } catch (requestError) {
+      setError(requestError.message || 'Dashboard data could not be loaded')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadDashboard()
+  }, [])
 
   const filteredUsers = useMemo(() => {
     const keyword = search.trim().toLowerCase()
@@ -220,27 +219,72 @@ const Dashboard = () => {
     )
   }, [search, users])
 
-  const adminsCount = users.filter((user) => user.role === 'admin').length
   const dashboardUsers = users.slice(0, 5)
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await fetch(`${API_URL}/logout`, {
+        method: 'POST',
+        credentials: 'include',
+      })
+    } catch (requestError) {
+      console.error('Logout request failed:', requestError)
+    }
+
     localStorage.removeItem('token')
     localStorage.removeItem('user')
     setModal(null)
     navigate('/signin')
   }
 
-  const handleDeleteUser = (id) => {
-    setUsers((prev) => prev.filter((user) => user.id !== id))
-    setModal(null)
+  const handleDeleteUser = async (id) => {
+    try {
+      await authFetch(`/users/${id}`, {
+        method: 'DELETE',
+      })
+      setUsers((prev) => prev.filter((user) => user.id !== id))
+      setStats((prev) => {
+        const deletedUser = users.find((user) => user.id === id)
+
+        return {
+          ...prev,
+          users: Math.max(prev.users - 1, 0),
+          admins: deletedUser?.role === 'admin' ? Math.max(prev.admins - 1, 0) : prev.admins,
+        }
+      })
+      setModal(null)
+    } catch (requestError) {
+      setError(requestError.message || 'User could not be deleted')
+      setModal(null)
+    }
   }
 
-  const handleToggleUserRole = (id) => {
-    setUsers((prev) =>
-      prev.map((user) =>
-        user.id === id ? { ...user, role: user.role === 'admin' ? 'user' : 'admin' } : user,
-      ),
-    )
+  const handleToggleUserRole = async (id) => {
+    const selectedUser = users.find((user) => user.id === id)
+    if (!selectedUser) return
+
+    const nextRole = selectedUser.role === 'admin' ? 'user' : 'admin'
+
+    try {
+      const result = await authFetch(`/users/${id}/role`, {
+        method: 'PATCH',
+        body: JSON.stringify({ role: nextRole }),
+      })
+      const updatedUser = mapUser(result.data)
+
+      setUsers((prev) => prev.map((user) => (user.id === id ? updatedUser : user)))
+      setStats((prev) => ({
+        ...prev,
+        admins: nextRole === 'admin' ? prev.admins + 1 : Math.max(prev.admins - 1, 0),
+      }))
+
+      if (updatedUser.id === storedUser?._id && updatedUser.role !== 'admin') {
+        localStorage.setItem('user', JSON.stringify(result.data))
+        navigate('/')
+      }
+    } catch (requestError) {
+      setError(requestError.message || 'User role could not be updated')
+    }
   }
 
   return (
@@ -346,15 +390,21 @@ const Dashboard = () => {
                   <h1 className="mt-2 text-3xl font-black leading-tight sm:text-4xl">Admin Overview</h1>
                 </div>
                 <p className="max-w-md text-sm text-[#aeb3bf]">
-                  Frontend-only preview with hardcoded users. Backend wiring will come later.
+                  Live users and role controls are connected to the backend.
                 </p>
               </div>
 
               <div className="grid gap-4 md:grid-cols-3">
-                <StatBox title="Users" value={users.length} meta="Total registered accounts" tone="bg-sky-400" />
-                <StatBox title="Admins" value={adminsCount} meta="Users with admin access" tone="bg-[#ffc414]" />
-                <StatBox title="Database" value="Active" meta="Mock connection status" tone="bg-emerald-400" />
+                <StatBox title="Users" value={stats.users} meta="Total registered accounts" tone="bg-sky-400" />
+                <StatBox title="Admins" value={stats.admins} meta="Users with admin access" tone="bg-[#ffc414]" />
+                <StatBox title="Database" value={stats.database} meta="MongoDB connection status" tone={stats.database === 'Active' ? 'bg-emerald-400' : 'bg-red-400'} />
               </div>
+
+              {error && (
+                <div className="mt-5 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm font-bold text-red-200">
+                  {error}
+                </div>
+              )}
 
               <div className="mt-6 rounded-lg border border-white/10 bg-[#111216] p-4 sm:p-5">
                 <div className="mb-4 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
@@ -371,12 +421,18 @@ const Dashboard = () => {
                   </button>
                 </div>
 
-                <UserTable
-                  users={dashboardUsers}
-                  onDelete={(id) => setModal({ type: 'delete', userId: id })}
-                  onToggleRole={handleToggleUserRole}
+                {isLoading ? (
+                  <div className="rounded-lg border border-white/10 bg-[#15161a] px-5 py-10 text-center text-sm font-bold text-[#aeb3bf]">
+                    Loading users...
+                  </div>
+                ) : (
+                  <UserTable
+                    users={dashboardUsers}
+                    onDelete={(id) => setModal({ type: 'delete', userId: id })}
+                  onToggleRole={(user) => setModal({ type: 'role', user })}
                   compact
                 />
+                )}
               </div>
             </section>
           )}
@@ -403,11 +459,23 @@ const Dashboard = () => {
                 </label>
               </div>
 
-              <UserTable
+              {error && (
+                <div className="mb-5 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm font-bold text-red-200">
+                  {error}
+                </div>
+              )}
+
+              {isLoading ? (
+                <div className="rounded-lg border border-white/10 bg-[#15161a] px-5 py-10 text-center text-sm font-bold text-[#aeb3bf]">
+                  Loading users...
+                </div>
+              ) : (
+                <UserTable
                 users={filteredUsers}
                 onDelete={(id) => setModal({ type: 'delete', userId: id })}
-                onToggleRole={handleToggleUserRole}
+                onToggleRole={(user) => setModal({ type: 'role', user })}
               />
+              )}
             </section>
           )}
         </main>
@@ -426,11 +494,26 @@ const Dashboard = () => {
       {modal?.type === 'delete' && (
         <ConfirmModal
           title="Delete user?"
-          message="This user will be removed from the dashboard preview."
+          message="This user will be deleted from the database."
           confirmLabel="Delete User"
           danger
           onCancel={() => setModal(null)}
           onConfirm={() => handleDeleteUser(modal.userId)}
+        />
+      )}
+
+      {modal?.type === 'role' && (
+        <ConfirmModal
+          title="Change role?"
+          message={`Do you want to make ${modal.user.name} a ${
+            modal.user.role === 'admin' ? 'user' : 'admin'
+          }?`}
+          confirmLabel={modal.user.role === 'admin' ? 'Make User' : 'Make Admin'}
+          onCancel={() => setModal(null)}
+          onConfirm={() => {
+            handleToggleUserRole(modal.user.id)
+            setModal(null)
+          }}
         />
       )}
     </div>
