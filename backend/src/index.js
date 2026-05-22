@@ -18,7 +18,7 @@ await connectDb();
 
 app.use(cors({
   origin: [
-    "http://localhost:5173",
+    "https://complete-ten-classes-practice-memb.vercel.app",
     "http://127.0.0.1:5173",
     "https://blog-app-with-backend-odxc.vercel.app"
   ],
