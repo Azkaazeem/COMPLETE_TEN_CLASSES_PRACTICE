@@ -16,6 +16,18 @@ const BlogSchema = new mongoose.Schema({
     },
     public_id: {
         type: String
+    },
+    user: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "user",
+    },
+    authorName: {
+        type: String,
+        default: "",
+    },
+    authorProfilePic: {
+        type: String,
+        default: "",
     }
 }, {
     timestamps: true

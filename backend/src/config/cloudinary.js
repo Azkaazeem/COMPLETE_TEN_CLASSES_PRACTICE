@@ -2,6 +2,7 @@ import { v2 as cloudinary } from "cloudinary";
 import dotenv from "dotenv";
 
 dotenv.config();
+console.log(process.env.CLOUD_NAME,process.env.CLOUD_NAME,process.env.CLOUD_API_SECRET);
 
 // Cloudinary configuration
 cloudinary.config({
@@ -10,7 +11,6 @@ cloudinary.config({
   api_secret: process.env.CLOUD_API_SECRET,
 });
 
-// Function to upload image
 const uploadImg = async (file) => {
   try {
     const fileName = `blog-${file.originalname.split(".")[0]}_${Date.now()}`;
