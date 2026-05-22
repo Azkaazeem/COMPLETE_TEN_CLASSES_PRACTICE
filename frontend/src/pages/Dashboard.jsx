@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import ConfirmModal from '../components/ConfirmModal'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1/auth'
+const API_URL = import.meta.env.VITE_API_URL || 'https://complete-ten-classes-practice-3pt7.vercel.app/api/v1/auth'
 const FALLBACK_AVATAR =
   'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=120&q=80'
 

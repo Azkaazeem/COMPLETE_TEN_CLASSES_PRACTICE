@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1/auth'
+const API_URL = import.meta.env.VITE_API_URL || 'https://complete-ten-classes-practice-3pt7.vercel.app/api/v1/auth'
 
 const UserIcon = () => (
   <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor" aria-hidden="true">
