@@ -191,9 +191,9 @@ const SignIn = () => {
           </label>
 
           <div className="text-right">
-            <button type="button" className="text-xs font-bold text-white/90">
+            <Link to="/forgot-password" className="text-xs font-bold text-white/90">
               Forgot password?
-            </button>
+            </Link>
           </div>
 
           <button

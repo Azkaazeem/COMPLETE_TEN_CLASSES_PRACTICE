@@ -1,6 +1,8 @@
 import { NavLink, Route, Routes, useLocation } from 'react-router-dom'
 import SignUp from './authPages/signup'
 import SignIn from './authPages/signin'
+import ForgotPassword from './authPages/ForgotPassword'
+import ResetPassword from './authPages/ResetPassword'
 import Dashboard from './pages/Dashboard'
 import Home from './pages/Home'
 import NotFound from './pages/NotFound'
@@ -8,7 +10,9 @@ import ProtectedAdminRoute from './components/ProtectedAdminRoute'
 
 const App = () => {
   const location = useLocation()
-  const showAuthNav = ['/signin', '/signup'].includes(location.pathname)
+  const showAuthNav =
+    ['/signin', '/signup', '/forgot-password'].includes(location.pathname) ||
+    location.pathname.startsWith('/reset-password')
 
   return (
     <main className="min-h-screen bg-black">
@@ -45,6 +49,8 @@ const App = () => {
         />
         <Route path="/signin" element={<SignIn />} />
         <Route path="/signup" element={<SignUp />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password/:token" element={<ResetPassword />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </main>
