@@ -46,7 +46,6 @@ const requireDbConnection = (req, res, next) => {
 // 2. Register your API endpoints here
 app.use('/api/v1/auth', requireDbConnection, authroute);
 app.use('/api/v1/blog', blogroute); // This is required for image uploads
-
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);

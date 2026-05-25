@@ -16,6 +16,13 @@ const addUser = async (req, res) => {
       });
     }
 
+    if (!req.file) {
+      return res.json({
+        status: false,
+        message: "profile picture is required",
+      });
+    }
+
     const existingUser = await Users.findOne({ email });
     if (existingUser) {
       return res.json({

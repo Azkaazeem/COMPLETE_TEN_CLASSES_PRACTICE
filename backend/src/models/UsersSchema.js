@@ -24,11 +24,11 @@ const UsersSchema = new mongoose.Schema(
     },
     profilePic: {
       type: String,
-      default: "",
+      required: true,
     },
     profilePicPublicId: {
       type: String,
-      default: "",
+      required: true,
     },
     resetPasswordToken: {
       type: String,

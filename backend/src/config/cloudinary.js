@@ -2,7 +2,7 @@ import { v2 as cloudinary } from "cloudinary";
 import dotenv from "dotenv";
 
 dotenv.config();
-console.log(process.env.CLOUD_NAME,process.env.CLOUD_NAME,process.env.CLOUD_API_SECRET);
+// console.log(process.env.CLOUD_NAME,process.env.CLOUD_NAME,process.env.CLOUD_API_SECRET);
 
 // Cloudinary configuration
 cloudinary.config({
