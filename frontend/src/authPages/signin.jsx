@@ -157,7 +157,7 @@ const SignIn = () => {
             name="email"
             value={formData.email}
             onChange={handleChange}
-            placeholder="Email"
+            placeholder="admin@gmail.com"
           />
           <AuthInput
             icon={<KeyIcon />}
@@ -165,7 +165,7 @@ const SignIn = () => {
             name="password"
             value={formData.password}
             onChange={handleChange}
-            placeholder="Password"
+            placeholder="admin123"
             showPassword={showPassword}
             onTogglePassword={() => setShowPassword((prev) => !prev)}
           />
